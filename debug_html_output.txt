@@ -1,0 +1,12 @@
+﻿Product ID: 771898
+Top-level keys: ['identity', 'section_count', 'layout_type', 'bg_color', 'click_action', 'image', 'name', 'variant', 'show_variant_dropdown', 'normal_price', 'inventory', 'merchant_type', 'eta_identifier', 'stepper_data', 'eta_tag', 'elevation', 'corner_radius', 'show_border', 'show_click_action_animation', 'cta', 'atc_action', 'rfc_action', 'offer', 'meta', 'is_sold_out', 'animation_type', 'group_id', 'product_state', 'merchant_id', 'stepper_data_v2', 'brand_name', 'media_container', 'rating', 'display_name', 'ui_config', 'product_id', 'product_badges']
+
+  PRICE FIELD: normal_price = {'text': 'Γé╣179', 'color': {'type': 'black', 'tint': '900'}, 'font': {'size': '200', 'weight': 'semibold'}}
+  PRICE FIELD: atc_action.add_to_cart.cart_item.price = 179
+  PRICE FIELD: atc_action.add_to_cart.cart_item.mrp = 179
+  PRICE FIELD: rfc_action.remove_from_cart.cart_item.price = 179
+  PRICE FIELD: rfc_action.remove_from_cart.cart_item.mrp = 179
+  PRICE FIELD: stepper_data_v2.increment_actions.default[0].add_to_cart.cart_item.price = 179
+  PRICE FIELD: stepper_data_v2.increment_actions.default[0].add_to_cart.cart_item.mrp = 179
+  PRICE FIELD: stepper_data_v2.decrement_actions.default[0].remove_from_cart.cart_item.price = 179
+  PRICE FIELD: stepper_data_v2.decrement_actions.default[0].remove_from_cart.cart_item.mrp = 179
