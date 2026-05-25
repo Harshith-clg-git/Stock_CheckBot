@@ -15,6 +15,9 @@ from matcher.keywords import match_keywords
 from notifier.whatsapp import send_alert
 from config import SCAN_INTERVAL
 
+# Global flag to track if this is the very first scan after startup
+INITIAL_RUN = True
+
 
 # ---------------------------------------------------------------------------
 # Database helpers
@@ -29,11 +32,7 @@ def _ensure_schema():
     conn = get_connection()
     cur = conn.cursor()
     
-    # Drop table on every startup so the bot forgets previous runs.
-    # This ensures it sends alerts for ALL currently available products 
-    # on the first scan, but only new/restocked products while it keeps running.
-    cur.execute("DROP TABLE IF EXISTS products")
-    
+    # We no longer drop the table. We will use INITIAL_RUN to prevent startup spam.
     cur.execute("""
         CREATE TABLE IF NOT EXISTS products (
             product_id TEXT PRIMARY KEY,
@@ -89,12 +88,16 @@ async def scan_platform(platform_name: str, fetch_fn):
         row = cur.fetchone()
 
         if row is None:
-            # New product — alert immediately
-            try:
-                send_alert(title, price, link, platform=platform, category=category)
-                logger.success(f"[{platform_name}] Alert sent: {title}")
-            except Exception as e:
-                logger.error(f"[{platform_name}] Alert failed: {e}")
+            if INITIAL_RUN:
+                # Quietly add to DB without alerting on the first startup scan
+                logger.info(f"[{platform_name}] Baseline added (No alert): {title}")
+            else:
+                # New product — alert immediately
+                try:
+                    send_alert(title, price, link, platform=platform, category=category)
+                    logger.success(f"[{platform_name}] Alert sent: {title}")
+                except Exception as e:
+                    logger.error(f"[{platform_name}] Alert failed: {e}")
 
             cur.execute(
                 "INSERT INTO products VALUES (?, ?, ?, ?, ?)",
@@ -105,11 +108,14 @@ async def scan_platform(platform_name: str, fetch_fn):
             alerted, active = row
             if active == 0:
                 # Product reappeared after going out of stock
-                try:
-                    send_alert(title, price, link, platform=platform, category=category)
-                    logger.success(f"[{platform_name}] Restock alert: {title}")
-                except Exception as e:
-                    logger.error(f"[{platform_name}] Alert failed: {e}")
+                if INITIAL_RUN:
+                    logger.info(f"[{platform_name}] Baseline restock added (No alert): {title}")
+                else:
+                    try:
+                        send_alert(title, price, link, platform=platform, category=category)
+                        logger.success(f"[{platform_name}] Restock alert: {title}")
+                    except Exception as e:
+                        logger.error(f"[{platform_name}] Alert failed: {e}")
 
                 cur.execute(
                     "UPDATE products SET active=1 WHERE product_id=?",
@@ -146,6 +152,7 @@ PLATFORMS = [
 
 async def scan_all():
     """Run all platform scans sequentially to save memory on free tier."""
+    global INITIAL_RUN
     logger.info("=" * 50)
     logger.info("Starting scan across all platforms sequentially...")
     
@@ -156,6 +163,9 @@ async def scan_all():
             logger.error(f"[{name}] Unhandled error: {e}")
             
     logger.info("Scan complete.")
+    if INITIAL_RUN:
+        logger.info("Initial baseline scan complete. Future scans will send alerts.")
+        INITIAL_RUN = False
 
 
 def _start_dummy_server():
