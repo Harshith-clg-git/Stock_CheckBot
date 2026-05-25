@@ -145,14 +145,16 @@ PLATFORMS = [
 
 
 async def scan_all():
-    """Run all platform scans concurrently."""
+    """Run all platform scans sequentially to save memory on free tier."""
     logger.info("=" * 50)
-    logger.info("Starting scan across all platforms...")
-    tasks = [scan_platform(name, fn) for name, fn in PLATFORMS]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    for (name, _), result in zip(PLATFORMS, results):
-        if isinstance(result, Exception):
-            logger.error(f"[{name}] Unhandled error: {result}")
+    logger.info("Starting scan across all platforms sequentially...")
+    
+    for name, fn in PLATFORMS:
+        try:
+            await scan_platform(name, fn)
+        except Exception as e:
+            logger.error(f"[{name}] Unhandled error: {e}")
+            
     logger.info("Scan complete.")
 
 
