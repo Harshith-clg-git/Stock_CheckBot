@@ -88,16 +88,12 @@ async def scan_platform(platform_name: str, fetch_fn):
         row = cur.fetchone()
 
         if row is None:
-            if INITIAL_RUN:
-                # Quietly add to DB without alerting on the first startup scan
-                logger.info(f"[{platform_name}] Baseline added (No alert): {title}")
-            else:
-                # New product — alert immediately
-                try:
-                    send_alert(title, price, link, platform=platform, category=category)
-                    logger.success(f"[{platform_name}] Alert sent: {title}")
-                except Exception as e:
-                    logger.error(f"[{platform_name}] Alert failed: {e}")
+            # New product — alert immediately
+            try:
+                send_alert(title, price, link, platform=platform, category=category)
+                logger.success(f"[{platform_name}] Alert sent: {title}")
+            except Exception as e:
+                logger.error(f"[{platform_name}] Alert failed: {e}")
 
             cur.execute(
                 "INSERT INTO products VALUES (?, ?, ?, ?, ?)",
@@ -108,14 +104,11 @@ async def scan_platform(platform_name: str, fetch_fn):
             alerted, active = row
             if active == 0:
                 # Product reappeared after going out of stock
-                if INITIAL_RUN:
-                    logger.info(f"[{platform_name}] Baseline restock added (No alert): {title}")
-                else:
-                    try:
-                        send_alert(title, price, link, platform=platform, category=category)
-                        logger.success(f"[{platform_name}] Restock alert: {title}")
-                    except Exception as e:
-                        logger.error(f"[{platform_name}] Alert failed: {e}")
+                try:
+                    send_alert(title, price, link, platform=platform, category=category)
+                    logger.success(f"[{platform_name}] Restock alert: {title}")
+                except Exception as e:
+                    logger.error(f"[{platform_name}] Alert failed: {e}")
 
                 cur.execute(
                     "UPDATE products SET active=1 WHERE product_id=?",
