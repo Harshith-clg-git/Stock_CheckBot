@@ -25,22 +25,11 @@ def _is_priority(title: str) -> bool:
 
 def send_alert(title: str, price: str, link: str,
                platform: str = "blinkit", category: str = ""):
-    store = PLATFORM_EMOJI.get(platform, platform.title())
-    priority_tag = "⚡ HIGH PRIORITY\n" if _is_priority(title) else ""
-    cat_line = f"📦 Category: {category}\n" if category else ""
-
-    body = (
-        f"{priority_tag}"
-        f"🚨 HOT WHEELS FOUND on {store}\n"
-        f"\n"
-        f"🏷  {title}\n"
-        f"💰  {price}\n"
-        f"{cat_line}"
-        f"🔗  {link}\n"
-    )
-
+    # Send only name and link to save bandwidth/costs as requested
+    body_text = f"{title}\n{link}"
+    
     client.messages.create(
-        body=body,
+        body=body_text,
         from_=TWILIO_WHATSAPP_NUMBER,
         to=YOUR_WHATSAPP_NUMBER,
     )

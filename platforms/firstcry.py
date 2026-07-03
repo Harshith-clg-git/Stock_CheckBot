@@ -5,6 +5,7 @@ Ships nationwide, no location wall expected.
 import asyncio
 import os
 from playwright.async_api import async_playwright
+from utils import optimize_page
 
 PLATFORM = "firstcry"
 BASE_URL = "https://www.firstcry.com"
@@ -29,6 +30,7 @@ async def fetch_products():
             
         context = await browser.new_context(**context_args)
         page = await context.new_page()
+        await optimize_page(page)
 
         search_url = f"{BASE_URL}/search-result?q=hot+wheels"
         try:

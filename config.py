@@ -15,9 +15,6 @@ BLINKIT_LON = 78.4406
 ZEPTO_LAT = 17.4297
 ZEPTO_LON = 78.4406
 
-SWIGGY_LAT = 17.4297
-SWIGGY_LON = 78.4406
-
 PINCODE = "500073"   # Hyderabad pincode — used by BigBasket / FirstCry
 
 # ---------------------------------------------------------------------------
@@ -25,7 +22,6 @@ PINCODE = "500073"   # Hyderabad pincode — used by BigBasket / FirstCry
 # ---------------------------------------------------------------------------
 SCAN_INTERVAL = 120          # Blinkit
 ZEPTO_SCAN_INTERVAL = 180
-SWIGGY_SCAN_INTERVAL = 180
 FIRSTCRY_SCAN_INTERVAL = 300
 BIGBASKET_SCAN_INTERVAL = 300
 

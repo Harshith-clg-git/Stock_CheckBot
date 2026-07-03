@@ -2,6 +2,7 @@ import asyncio
 import json
 from playwright.async_api import async_playwright
 from config import BLINKIT_LAT, BLINKIT_LON
+from utils import optimize_page
 
 
 async def fetch_products():
@@ -24,6 +25,7 @@ async def fetch_products():
             )
         )
         page = await context.new_page()
+        await optimize_page(page)
 
         # Intercept Blinkit's internal search API calls
         async def handle_response(response):

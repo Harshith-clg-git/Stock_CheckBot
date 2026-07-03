@@ -6,6 +6,7 @@ import json
 import os
 from playwright.async_api import async_playwright
 from config import ZEPTO_LAT, ZEPTO_LON
+from utils import optimize_page
 
 PLATFORM = "zepto"
 
@@ -30,6 +31,7 @@ async def fetch_products():
             
         context = await browser.new_context(**context_args)
         page = await context.new_page()
+        await optimize_page(page)
 
         async def handle_response(response):
             url = response.url

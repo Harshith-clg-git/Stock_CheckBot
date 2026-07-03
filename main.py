@@ -6,14 +6,19 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from loguru import logger
 
 from platforms.blinkit          import fetch_products as blinkit_fetch
-from platforms.swiggy_instamart import fetch_products as swiggy_fetch
 from platforms.zepto            import fetch_products as zepto_fetch
 from platforms.firstcry         import fetch_products as firstcry_fetch
 from platforms.bigbasket        import fetch_products as bigbasket_fetch
 
 from matcher.keywords import match_keywords
 from notifier.whatsapp import send_alert
-from config import SCAN_INTERVAL
+from config import (
+    SCAN_INTERVAL,
+    ZEPTO_SCAN_INTERVAL,
+    FIRSTCRY_SCAN_INTERVAL,
+    BIGBASKET_SCAN_INTERVAL
+)
+import time
 
 # Global flag to track if this is the very first scan after startup
 INITIAL_RUN = True
@@ -135,28 +140,30 @@ async def scan_platform(platform_name: str, fetch_fn):
 # ---------------------------------------------------------------------------
 
 PLATFORMS = [
-    ("blinkit",          blinkit_fetch),
-    ("swiggy_instamart", swiggy_fetch),
-    ("zepto",            zepto_fetch),
-    ("firstcry",         firstcry_fetch),
-    ("bigbasket",        bigbasket_fetch),
+    ("blinkit",          blinkit_fetch,   SCAN_INTERVAL),
+    ("zepto",            zepto_fetch,     ZEPTO_SCAN_INTERVAL),
+    ("firstcry",         firstcry_fetch,  FIRSTCRY_SCAN_INTERVAL),
+    ("bigbasket",        bigbasket_fetch, BIGBASKET_SCAN_INTERVAL),
 ]
 
+last_scan_times = {p[0]: 0 for p in PLATFORMS}
 
-async def scan_all():
-    """Run all platform scans sequentially to save memory on free tier."""
+async def scan_due_platforms():
+    """Run platform scans sequentially if they are due, to save memory on free tier."""
     global INITIAL_RUN
-    logger.info("=" * 50)
-    logger.info("Starting scan across all platforms sequentially...")
+    now = time.time()
     
-    for name, fn in PLATFORMS:
-        try:
-            await scan_platform(name, fn)
-        except Exception as e:
-            logger.error(f"[{name}] Unhandled error: {e}")
+    scanned_any = False
+    for name, fn, interval in PLATFORMS:
+        if now - last_scan_times[name] >= interval:
+            scanned_any = True
+            try:
+                await scan_platform(name, fn)
+            except Exception as e:
+                logger.error(f"[{name}] Unhandled error: {e}")
+            last_scan_times[name] = time.time()
             
-    logger.info("Scan complete.")
-    if INITIAL_RUN:
+    if scanned_any and INITIAL_RUN:
         logger.info("Initial baseline scan complete. Future scans will send alerts.")
         INITIAL_RUN = False
 
@@ -187,12 +194,12 @@ async def main():
 
     while True:
         try:
-            await scan_all()
+            await scan_due_platforms()
         except Exception as e:
             logger.error(f"Scan cycle error: {e}")
 
-        logger.info(f"Sleeping {SCAN_INTERVAL}s until next scan...")
-        await asyncio.sleep(SCAN_INTERVAL)
+        logger.info("Sleeping 30s until next check...")
+        await asyncio.sleep(30)
 
 
 if __name__ == "__main__":
