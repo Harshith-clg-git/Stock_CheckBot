@@ -25,7 +25,6 @@ async def fetch_products():
             )
         )
         page = await context.new_page()
-        await optimize_page(page)
 
         # Intercept Blinkit's internal search API calls
         async def handle_response(response):
