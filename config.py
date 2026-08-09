@@ -39,29 +39,34 @@ PREMIUM_KEYWORDS = [
 
 JDM_KEYWORDS = [
     "honda", "civic", "nsx", "s2000", "integra", "type r", "prelude",
-    "nissan", "skyline", "gtr", "gt-r", "r32", "r33", "r34",
-    "silvia", "240sx", "fairlady", "370z", "350z",
+    "nissan", "skyline", "gtr", "gt-r", "r32", "r33", "r34", "r35",
+    "silvia", "240sx", "180sx", "fairlady", "370z", "350z", "300zx",
     "toyota", "supra", "ae86", "trueno", "celica", "mr2", "land cruiser",
-    "mazda", "rx7", "rx-7", "rx3", "miata", "mx5", "mx-5",
+    "datsun", "240z", "620", "510",
+    "mazda", "rx7", "rx-7", "rx3", "miata", "mx5", "mx-5", "cosmo",
     "mitsubishi", "evo", "evolution", "3000gt",
-    "subaru", "impreza", "wrx", "sti",
+    "subaru", "impreza", "wrx", "sti", "brz",
     "acura", "lexus", "lfa"
 ]
 
 EXOTIC_KEYWORDS = [
     "ferrari", "lamborghini", "lambo", "huracan", "aventador",
-    "revuelto", "countach", "bugatti", "chiron", "veyron",
-    "pagani", "zonda", "huayra", "koenigsegg", "jesko", "agera",
-    "mclaren", "p1", "senna", "720s", "765lt",
-    "porsche", "911", "gt3", "gt2", "carrera", "taycan",
-    "aston martin", "db5", "valkyrie"
+    "revuelto", "countach", "miura", "diablo",
+    "bugatti", "chiron", "veyron", "bolide", "divo",
+    "pagani", "zonda", "huayra", "utopia",
+    "koenigsegg", "jesko", "agera", "gemera", "cc850",
+    "mclaren", "p1", "senna", "720s", "765lt", "f1", "speedtail",
+    "porsche", "911", "gt3", "gt2", "carrera", "taycan", "cayman", "boxster", "918", "959",
+    "aston martin", "db5", "valkyrie", "vantage", "vulcan",
+    "maserati"
 ]
 
 MUSCLE_KEYWORDS = [
-    "ford", "mustang", "shelby", "cobra", "bronco", "f-150", "raptor",
-    "chevrolet", "chevy", "camaro", "chevelle", "nova", "silverado",
-    "dodge", "charger", "challenger", "hellcat", "demon", "viper",
-    "corvette", "c8", "pontiac", "firebird", "trans am", "gto"
+    "ford", "mustang", "shelby", "gt500", "gt350", "cobra", "gt40", "bronco", "f-150", "raptor",
+    "chevrolet", "chevy", "camaro", "chevelle", "nova", "silverado", "corvette", "c8", "c7", "c6",
+    "dodge", "charger", "challenger", "hellcat", "demon", "viper", "hemi",
+    "pontiac", "firebird", "trans am", "gto",
+    "plymouth", "cuda", "barracuda", "superbird"
 ]
 
 EURO_KEYWORDS = [
