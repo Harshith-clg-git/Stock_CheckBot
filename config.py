@@ -16,18 +16,25 @@ TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238
 YOUR_WHATSAPP_NUMBER = os.getenv("YOUR_WHATSAPP_NUMBER", "")
 
 # ---------------------------------------------------------------------------
-# Location Coordinates (Hyderabad Default)
-# ---------------------------------------------------------------------------
-BLINKIT_LAT = float(os.getenv("BLINKIT_LAT", "17.4297"))
-BLINKIT_LON = float(os.getenv("BLINKIT_LON", "78.4406"))
+def _get_float(key: str, default: float) -> float:
+    val = os.getenv(key, "").strip()
+    if not val:
+        return default
+    try:
+        return float(val)
+    except ValueError:
+        return default
 
-ZEPTO_LAT = float(os.getenv("ZEPTO_LAT", "17.4297"))
-ZEPTO_LON = float(os.getenv("ZEPTO_LON", "78.4406"))
+BLINKIT_LAT = _get_float("BLINKIT_LAT", 17.4297)
+BLINKIT_LON = _get_float("BLINKIT_LON", 78.4406)
 
-INSTAMART_LAT = float(os.getenv("INSTAMART_LAT", "17.4297"))
-INSTAMART_LON = float(os.getenv("INSTAMART_LON", "78.4406"))
+ZEPTO_LAT = _get_float("ZEPTO_LAT", 17.4297)
+ZEPTO_LON = _get_float("ZEPTO_LON", 78.4406)
 
-PINCODE = os.getenv("PINCODE", "500073")
+INSTAMART_LAT = _get_float("INSTAMART_LAT", 17.4297)
+INSTAMART_LON = _get_float("INSTAMART_LON", 78.4406)
+
+PINCODE = os.getenv("PINCODE", "500073").strip() or "500073"
 
 # ---------------------------------------------------------------------------
 # Hot Wheels Keyword Priority Tiers
