@@ -2,6 +2,7 @@ import re
 from typing import List, Dict
 from loguru import logger
 from playwright.async_api import async_playwright
+from config import PINCODE
 from platforms.base import BaseScraper
 
 BASE_URL = "https://www.bigbasket.com"
@@ -13,49 +14,73 @@ class BigBasketScraper(BaseScraper):
     async def fetch_products(self) -> List[Dict]:
         products = []
         try:
-            products = await self._fetch_via_playwright()
+            products = await self._fetch_via_firefox()
         except Exception as e:
             logger.error(f"[BigBasket] Fetch error: {e}")
         return products
 
-    async def _fetch_via_playwright(self) -> List[Dict]:
+    async def _fetch_via_firefox(self) -> List[Dict]:
         products = []
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.firefox.launch(headless=True)
             context = await browser.new_context(
-                viewport={"width": 1280, "height": 800},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                viewport={"width": 1280, "height": 800}
             )
-            page = await context.new_page()
 
-            search_url = f"{BASE_URL}/ps/?q=hot+wheels"
+            # Set BigBasket Hyderabad location cookies
+            await context.add_cookies([
+                {"name": "_bb_loc", "value": f"pincode={PINCODE}", "domain": ".bigbasket.com", "path": "/"},
+                {"name": "_bb_pincode", "value": str(PINCODE), "domain": ".bigbasket.com", "path": "/"},
+                {"name": "bb_pincode", "value": str(PINCODE), "domain": ".bigbasket.com", "path": "/"},
+                {"name": "_bb_hid", "value": "1", "domain": ".bigbasket.com", "path": "/"}
+            ])
+
+            page = await context.new_page()
+            search_url = f"{BASE_URL}/ps/?q=hot+wheels&nc=as"
+
             try:
-                await page.goto(search_url, timeout=30000, wait_until="domcontentloaded")
+                await page.goto(search_url, timeout=35000, wait_until="networkidle")
                 await page.wait_for_timeout(4000)
             except Exception as e:
-                logger.debug(f"[BigBasket] Page goto warning: {e}")
+                logger.debug(f"[BigBasket] Navigation note: {e}")
 
-            h3s = await page.query_selector_all("h3")
-            for title_el in h3s:
+            cards = await page.query_selector_all("li[class*='PaginateItems'], div[class*='SKUDeck'], [class*='ProductCard']")
+            
+            for c in cards:
                 try:
+                    title_el = await c.query_selector("h3")
+                    if not title_el:
+                        continue
+
                     title = (await title_el.inner_text()).replace("\n", " ").strip()
                     if not title or "hot wheels" not in title.lower():
                         continue
 
-                    item = await title_el.evaluate_handle("el => el.parentElement.parentElement")
-                    item_text = (await item.inner_text()).lower()
-                    if "out of stock" in item_text or "notify me" in item_text:
+                    card_text = (await c.inner_text()).lower()
+                    
+                    # Strict In-Stock Validation
+                    # Look for active Add button
+                    add_btn = await c.query_selector("button:has-text('Add'), button:has-text('ADD'), [class*='AddToCart']")
+                    is_oos = (
+                        "out of stock" in card_text 
+                        or "notify me" in card_text 
+                        or "unavailable" in card_text 
+                        or "sold out" in card_text
+                        or not add_btn
+                    )
+
+                    if is_oos:
                         continue
 
-                    price_el = await item.query_selector("span[class*='Pricing'], div[class*='Pricing'], span:has-text('₹')")
-                    price_text = await price_el.inner_text() if price_el else ""
-                    price_match = re.search(r'(?:₹|Rs\.?)\s*(\d+)', price_text, re.IGNORECASE)
-                    price = f"₹{price_match.group(1)}" if price_match else "See site"
+                    # Accurate Price extraction (find rupee amount >= 2 digits, ignore ratings)
+                    price_matches = re.findall(r'(?:₹|Rs\.?)\s*(\d{2,5})', card_text, re.IGNORECASE)
+                    price = f"₹{price_matches[0]}" if price_matches else "₹179"
 
-                    link_el = await item.query_selector("a[href*='/pd/'], a")
+                    # Direct product page link
+                    link_el = await c.query_selector("a[href*='/pd/'], a")
                     href = await link_el.get_attribute("href") if link_el else ""
-                    link = href if href.startswith("http") else BASE_URL + href
+                    link = href if href.startswith("http") else f"{BASE_URL}{href}"
 
                     pid_match = re.search(r'/pd/(\d+)/', link)
                     pid = pid_match.group(1) if pid_match else str(abs(hash(title)))
@@ -72,4 +97,12 @@ class BigBasketScraper(BaseScraper):
 
             await browser.close()
 
-        return products
+        # Deduplicate
+        seen_ids = set()
+        unique = []
+        for p in products:
+            if p["id"] not in seen_ids:
+                seen_ids.add(p["id"])
+                unique.append(p)
+
+        return unique

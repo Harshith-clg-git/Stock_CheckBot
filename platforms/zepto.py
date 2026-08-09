@@ -80,9 +80,17 @@ class ZeptoScraper(BaseScraper):
                             name = prod.get("name", "")
                             pid = prod.get("id") or pr.get("id")
                             variant_id = pv.get("id") or pr.get("id") or pid
-                            oos = pr.get("outOfStock", False)
+                            
+                            # Strict Zepto In-Stock Validation
+                            oos = pr.get("outOfStock", False) or pr.get("is_out_of_stock", False) or pv.get("outOfStock", False)
+                            available_qty = pr.get("availableQuantity", 0)
+                            qty = pr.get("quantity", 0)
+                            is_active = pr.get("isActive", True) and pv.get("isActive", True)
 
-                            if name and pid and not oos:
+                            if oos or not is_active or (available_qty <= 0 and qty <= 0):
+                                continue
+
+                            if name and pid:
                                 price_paise = pr.get("discountedSellingPrice") or pr.get("sellingPrice") or pr.get("mrp") or 0
                                 price = f"₹{int(price_paise) // 100}" if price_paise else "Unknown"
                                 slug = re.sub(r'[^a-zA-Z0-9]+', '-', name.lower()).strip('-')

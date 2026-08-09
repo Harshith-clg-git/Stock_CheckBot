@@ -1,6 +1,5 @@
 import json
 import re
-import httpx
 from typing import List, Dict
 from loguru import logger
 from playwright.async_api import async_playwright
@@ -82,12 +81,21 @@ class BlinkitScraper(BaseScraper):
             if not name:
                 continue
 
-            # Stock check
-            inventory = data.get("inventory", -1)
-            is_oos = data.get("sold_out", False)
-            atc_text = str(data.get("atc_action", {})).lower()
+            # Strict Blinkit Stock Check
+            is_sold_out = data.get("is_sold_out", False) or data.get("sold_out", False)
+            product_state = str(data.get("product_state", "")).lower()
+            inventory = data.get("inventory")
+            cta_style = str(data.get("cta", {}).get("style", "")).lower()
+            atc_action = data.get("atc_action", {})
 
-            if inventory == 0 or is_oos or "out of stock" in atc_text or "oos" in atc_text:
+            if (
+                is_sold_out 
+                or product_state in ("out_of_stock", "unavailable", "sold_out", "oos")
+                or (inventory is not None and inventory <= 0)
+                or "notify" in cta_style
+                or not atc_action
+                or atc_action.get("type") != "add_to_cart"
+            ):
                 continue
 
             price = "Unknown"
