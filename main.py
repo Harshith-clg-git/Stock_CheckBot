@@ -9,7 +9,6 @@ from notifier.telegram_bot import send_telegram_alert
 
 from platforms.blinkit import BlinkitScraper
 from platforms.zepto import ZeptoScraper
-from platforms.instamart import InstamartScraper
 from platforms.firstcry import FirstCryScraper
 from platforms.bigbasket import BigBasketScraper
 
@@ -31,7 +30,6 @@ logger.add(
 SCRAPERS = [
     BlinkitScraper(),
     ZeptoScraper(),
-    InstamartScraper(),
     FirstCryScraper(),
     BigBasketScraper(),
 ]

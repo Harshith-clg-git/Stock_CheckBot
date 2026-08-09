@@ -34,7 +34,7 @@ class ZeptoScraper(BaseScraper):
 
             async def handle_response(response):
                 url = response.url
-                if "zeptonow.com" in url and ("search" in url or "product" in url or "layout" in url):
+                if ("zepto.com" in url or "zeptonow.com" in url) and ("user-search-service" in url or "search" in url or "product" in url or "layout" in url):
                     try:
                         body = await response.text()
                         if body.strip().startswith("{") or body.strip().startswith("["):
@@ -43,13 +43,13 @@ class ZeptoScraper(BaseScraper):
                         pass
 
             page.on("response", handle_response)
-            search_url = "https://www.zeptonow.com/search?query=hot+wheels"
+            search_url = "https://www.zepto.com/search?query=hot+wheels"
 
             try:
-                await page.goto(search_url, timeout=30000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(5000)
+                await page.goto(search_url, timeout=30000, wait_until="networkidle")
+                await page.wait_for_timeout(3000)
             except Exception as e:
-                logger.debug(f"[Zepto] Navigation warning: {e}")
+                logger.debug(f"[Zepto] Navigation note: {e}")
 
             await browser.close()
 
@@ -68,28 +68,32 @@ class ZeptoScraper(BaseScraper):
 
     def _extract_zepto_products(self, data, products: List[Dict]):
         if isinstance(data, dict):
-            for key in ("data", "items", "products", "results", "hits", "productResponse", "storeProduct"):
-                if key in data:
+            layout = data.get("layout", [])
+            if isinstance(layout, list):
+                for item in layout:
+                    if item.get("widgetId") == "PRODUCT_GRID":
+                        items = item.get("data", {}).get("resolver", {}).get("data", {}).get("items", [])
+                        for it in items:
+                            pr = it.get("productResponse", {})
+                            prod = pr.get("product", {})
+                            name = prod.get("name", "")
+                            pid = prod.get("id") or pr.get("id")
+                            oos = pr.get("outOfStock", False)
+
+                            if name and pid and not oos:
+                                price_paise = pr.get("discountedSellingPrice") or pr.get("sellingPrice") or pr.get("mrp") or 0
+                                price = f"₹{int(price_paise) // 100}" if price_paise else "Unknown"
+                                products.append({
+                                    "id": f"zepto_{pid}",
+                                    "title": name.strip(),
+                                    "price": price,
+                                    "link": "https://www.zepto.com/search?query=hot+wheels",
+                                    "platform": self.platform_name,
+                                })
+
+            for key in ("data", "items", "products", "results", "hits"):
+                if key in data and isinstance(data[key], (dict, list)):
                     self._extract_zepto_products(data[key], products)
-
-            name = data.get("name") or data.get("product_name") or data.get("title")
-            pid = data.get("product_id") or data.get("id") or data.get("_id")
-            out_of_stock = data.get("out_of_stock", False) or data.get("is_out_of_stock", False)
-
-            if name and pid and isinstance(name, str) and "hot wheels" in name.lower() and not out_of_stock:
-                price_val = data.get("discounted_price") or data.get("mrp") or data.get("price") or 0
-                try:
-                    price = f"₹{int(price_val) // 100}" if int(price_val) > 1000 else f"₹{price_val}"
-                except Exception:
-                    price = str(price_val)
-
-                products.append({
-                    "id": f"zepto_{pid}",
-                    "title": name.strip(),
-                    "price": price,
-                    "link": f"https://www.zeptonow.com/search?query=hot+wheels",
-                    "platform": self.platform_name,
-                })
 
         elif isinstance(data, list):
             for item in data:

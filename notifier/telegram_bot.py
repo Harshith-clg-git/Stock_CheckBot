@@ -6,7 +6,6 @@ from matcher.engine import is_priority
 PLATFORM_BADGES = {
     "blinkit":          "🟡 Blinkit",
     "zepto":            "🟣 Zepto",
-    "instamart":        "🟠 Swiggy Instamart",
     "firstcry":         "🔵 FirstCry",
     "bigbasket":        "🟢 BigBasket",
 }
