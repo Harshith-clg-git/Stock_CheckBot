@@ -10,27 +10,19 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
-
 # ---------------------------------------------------------------------------
-def _get_float(key: str, default: float) -> float:
-    val = os.getenv(key, "").strip()
-    if not val:
-        return default
-    try:
-        return float(val)
-    except ValueError:
-        return default
+# Location Coordinates — Hyderabad (hardcoded, change here if needed)
+# ---------------------------------------------------------------------------
+BLINKIT_LAT  = 17.4297
+BLINKIT_LON  = 78.4406
 
-BLINKIT_LAT = _get_float("BLINKIT_LAT", 17.4297)
-BLINKIT_LON = _get_float("BLINKIT_LON", 78.4406)
+ZEPTO_LAT    = 17.4297
+ZEPTO_LON    = 78.4406
 
-ZEPTO_LAT = _get_float("ZEPTO_LAT", 17.4297)
-ZEPTO_LON = _get_float("ZEPTO_LON", 78.4406)
+INSTAMART_LAT = 17.4297
+INSTAMART_LON = 78.4406
 
-INSTAMART_LAT = _get_float("INSTAMART_LAT", 17.4297)
-INSTAMART_LON = _get_float("INSTAMART_LON", 78.4406)
-
-PINCODE = os.getenv("PINCODE", "500073").strip() or "500073"
+PINCODE = "500073"
 
 # ---------------------------------------------------------------------------
 # Hot Wheels Keyword Priority Tiers
@@ -97,7 +89,7 @@ KEYWORDS = {
     "POPULAR":       POPULAR_CASTINGS,
 }
 
-# Items matching these keywords will be flagged with ⚡ HIGH PRIORITY
+# Items matching these keywords will be flagged as HIGH PRIORITY
 TOP_PRIORITY = [
     "skyline", "gtr", "gt-r", "supra", "civic", "nsx", "rx7", "rx-7",
     "porsche", "911", "gt3", "lambo", "lamborghini", "ferrari",
