@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from typing import List, Dict
 from loguru import logger
@@ -22,13 +23,19 @@ class BlinkitScraper(BaseScraper):
     async def _fetch_via_playwright(self) -> List[Dict]:
         products = []
         api_responses = []
+        session_file = "sessions/blinkit.json"
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                viewport={"width": 1280, "height": 800},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-            )
+            
+            context_args = {
+                "viewport": {"width": 1280, "height": 800},
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            }
+            if os.path.exists(session_file):
+                context_args["storage_state"] = session_file
+
+            context = await browser.new_context(**context_args)
             page = await context.new_page()
 
             async def handle_response(response):

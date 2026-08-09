@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from typing import List, Dict
 from loguru import logger
@@ -21,15 +22,21 @@ class ZeptoScraper(BaseScraper):
     async def _fetch_via_playwright(self) -> List[Dict]:
         products = []
         api_responses = []
+        session_file = "sessions/zepto.json"
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                viewport={"width": 1280, "height": 800},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                geolocation={"latitude": ZEPTO_LAT, "longitude": ZEPTO_LON},
-                permissions=["geolocation"]
-            )
+            
+            context_args = {
+                "viewport": {"width": 1280, "height": 800},
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "geolocation": {"latitude": ZEPTO_LAT, "longitude": ZEPTO_LON},
+                "permissions": ["geolocation"]
+            }
+            if os.path.exists(session_file):
+                context_args["storage_state"] = session_file
+
+            context = await browser.new_context(**context_args)
             page = await context.new_page()
 
             async def handle_response(response):
@@ -56,12 +63,15 @@ class ZeptoScraper(BaseScraper):
         for data in api_responses:
             self._extract_zepto_products(data, products)
 
-        # Deduplicate by product ID
+        # Deduplicate: by product name (avoid same item from 2 different stores)
         seen_ids = set()
+        seen_names = set()
         unique = []
         for p in products:
-            if p["id"] not in seen_ids:
+            key = p["title"].lower().strip()
+            if p["id"] not in seen_ids and key not in seen_names:
                 seen_ids.add(p["id"])
+                seen_names.add(key)
                 unique.append(p)
 
         return unique
@@ -102,6 +112,7 @@ class ZeptoScraper(BaseScraper):
                                     "price": price,
                                     "link": link,
                                     "platform": self.platform_name,
+                                    "store_id": pr.get("storeId", "")
                                 })
 
             for key in ("data", "items", "products", "results", "hits"):
