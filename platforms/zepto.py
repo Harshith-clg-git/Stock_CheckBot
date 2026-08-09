@@ -1,5 +1,5 @@
 import json
-import httpx
+import re
 from typing import List, Dict
 from loguru import logger
 from playwright.async_api import async_playwright
@@ -76,18 +76,23 @@ class ZeptoScraper(BaseScraper):
                         for it in items:
                             pr = it.get("productResponse", {})
                             prod = pr.get("product", {})
+                            pv = pr.get("productVariant", {})
                             name = prod.get("name", "")
                             pid = prod.get("id") or pr.get("id")
+                            variant_id = pv.get("id") or pr.get("id") or pid
                             oos = pr.get("outOfStock", False)
 
                             if name and pid and not oos:
                                 price_paise = pr.get("discountedSellingPrice") or pr.get("sellingPrice") or pr.get("mrp") or 0
                                 price = f"₹{int(price_paise) // 100}" if price_paise else "Unknown"
+                                slug = re.sub(r'[^a-zA-Z0-9]+', '-', name.lower()).strip('-')
+                                link = f"https://www.zepto.com/pn/{slug}/pvid/{variant_id}"
+
                                 products.append({
                                     "id": f"zepto_{pid}",
                                     "title": name.strip(),
                                     "price": price,
-                                    "link": "https://www.zepto.com/search?query=hot+wheels",
+                                    "link": link,
                                     "platform": self.platform_name,
                                 })
 

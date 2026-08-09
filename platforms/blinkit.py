@@ -1,4 +1,5 @@
 import json
+import re
 import httpx
 from typing import List, Dict
 from loguru import logger
@@ -13,35 +14,10 @@ class BlinkitScraper(BaseScraper):
     async def fetch_products(self) -> List[Dict]:
         products = []
         try:
-            # 1. Try Direct REST API first (10x faster)
-            products = await self._fetch_via_api()
+            products = await self._fetch_via_playwright()
         except Exception as e:
-            logger.warning(f"[Blinkit] REST API attempt failed ({e}), trying Playwright fallback...")
+            logger.error(f"[Blinkit] Playwright fetch failed: {e}")
 
-        if not products:
-            try:
-                products = await self._fetch_via_playwright()
-            except Exception as e:
-                logger.error(f"[Blinkit] Playwright fallback failed: {e}")
-
-        return products
-
-    async def _fetch_via_api(self) -> List[Dict]:
-        products = []
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/plain, */*",
-            "app_client": "consumer_web",
-            "lat": str(BLINKIT_LAT),
-            "lon": str(BLINKIT_LON),
-        }
-        url = f"https://blinkit.com/v1/layout/search?q=hot+wheels&lat={BLINKIT_LAT}&lon={BLINKIT_LON}"
-
-        async with httpx.AsyncClient(timeout=15.0, headers=headers, follow_redirects=True) as client:
-            resp = await client.get(url)
-            if resp.status_code == 200:
-                data = resp.json()
-                products = self._parse_blinkit_json(data)
         return products
 
     async def _fetch_via_playwright(self) -> List[Dict]:
@@ -72,7 +48,7 @@ class BlinkitScraper(BaseScraper):
                 await page.goto(search_url, timeout=30000, wait_until="domcontentloaded")
                 await page.wait_for_timeout(4000)
             except Exception as e:
-                logger.debug(f"[Blinkit] Page load timeout/warning: {e}")
+                logger.debug(f"[Blinkit] Page load warning: {e}")
 
             await browser.close()
 
@@ -123,8 +99,8 @@ class BlinkitScraper(BaseScraper):
                 except (KeyError, TypeError):
                     pass
 
-            slug = name.lower().replace(" ", "-").replace("/", "-")
-            link = f"https://blinkit.com/prn/{slug}/prid/{product_id}/"
+            slug = re.sub(r'[^a-zA-Z0-9]+', '-', name.lower()).strip('-')
+            link = f"https://blinkit.com/prn/{slug}/prid/{product_id}"
 
             products.append({
                 "id": f"blinkit_{product_id}",
