@@ -1,6 +1,6 @@
 venv/
 __pycache__/
 *.pyc
-database.db
-*.html
+.env
 *.log
+test_*.db

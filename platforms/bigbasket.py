@@ -1,90 +1,75 @@
-"""
-BigBasket scraper — scrapes product grid.
-"""
-import asyncio
-import os
 import re
+from typing import List, Dict
+from loguru import logger
 from playwright.async_api import async_playwright
-from utils import optimize_page
+from platforms.base import BaseScraper
 
-PLATFORM = "bigbasket"
 BASE_URL = "https://www.bigbasket.com"
 
+class BigBasketScraper(BaseScraper):
+    def __init__(self):
+        super().__init__("bigbasket")
 
-async def fetch_products():
-    products = []
-
-    async with async_playwright() as p:
-        # BigBasket actively blocks headless mode
-        browser = await p.chromium.launch(headless=False)
-        
-        context_args = {
-            "viewport": {"width": 1280, "height": 800},
-            "user_agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            )
-        }
-        if os.path.exists("sessions/bigbasket.json"):
-            context_args["storage_state"] = "sessions/bigbasket.json"
-            
-        context = await browser.new_context(**context_args)
-        page = await context.new_page()
-        await optimize_page(page)
-
-        search_url = f"{BASE_URL}/ps/?q=hot+wheels&nc=as"
+    async def fetch_products(self) -> List[Dict]:
+        products = []
         try:
-            await page.goto(search_url, timeout=60000)
-            await page.wait_for_timeout(5000)
-        except Exception:
-            pass
+            products = await self._fetch_via_playwright()
+        except Exception as e:
+            logger.error(f"[BigBasket] Fetch error: {e}")
+        return products
 
-        # BigBasket blocks API scraping, use DOM fallback
-        h3s = await page.query_selector_all("h3")
-        
-        for title_el in h3s:
+    async def _fetch_via_playwright(self) -> List[Dict]:
+        products = []
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
+                viewport={"width": 1280, "height": 800},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            )
+            page = await context.new_page()
+
+            search_url = f"{BASE_URL}/ps/?q=hot+wheels"
             try:
-                item = await title_el.evaluate_handle("el => el.parentElement.parentElement")
-                
-                # Try multiple price selectors including the div containing Rs/₹
-                price_el = await item.query_selector("span[class*='Pricing'], div[class*='Pricing'], span:has-text('₹')")
-                
-                title = await title_el.inner_text() if title_el else ""
-                title = title.replace("\n", " ").strip()
-                
-                # Check for out of stock
-                item_text = await item.inner_text()
-                if "out of stock" in item_text.lower() or "notify me" in item_text.lower():
-                    continue
-                
-                price_text = await price_el.inner_text() if price_el else ""
-                # Extract first price format like ₹179 or 179
-                price_match = re.search(r'(?:₹|Rs\.?)\s*(\d+)', price_text, re.IGNORECASE)
-                price = f"₹{price_match.group(1)}" if price_match else "Unknown"
-                
-                # Try to get link
-                href = await item.get_attribute("href")
-                if not href:
-                    link_el = await item.query_selector("a[href*='/pd/']")
-                    href = await link_el.get_attribute("href") if link_el else ""
-                
-                link = href if href.startswith("http") else BASE_URL + href
+                await page.goto(search_url, timeout=30000, wait_until="domcontentloaded")
+                await page.wait_for_timeout(4000)
+            except Exception as e:
+                logger.debug(f"[BigBasket] Page goto warning: {e}")
 
-                if title and "hot wheels" in title.lower() and "firstcry" not in link.lower():
+            h3s = await page.query_selector_all("h3")
+            for title_el in h3s:
+                try:
+                    title = (await title_el.inner_text()).replace("\n", " ").strip()
+                    if not title or "hot wheels" not in title.lower():
+                        continue
+
+                    item = await title_el.evaluate_handle("el => el.parentElement.parentElement")
+                    item_text = (await item.inner_text()).lower()
+                    if "out of stock" in item_text or "notify me" in item_text:
+                        continue
+
+                    price_el = await item.query_selector("span[class*='Pricing'], div[class*='Pricing'], span:has-text('₹')")
+                    price_text = await price_el.inner_text() if price_el else ""
+                    price_match = re.search(r'(?:₹|Rs\.?)\s*(\d+)', price_text, re.IGNORECASE)
+                    price = f"₹{price_match.group(1)}" if price_match else "See site"
+
+                    link_el = await item.query_selector("a[href*='/pd/'], a")
+                    href = await link_el.get_attribute("href") if link_el else ""
+                    link = href if href.startswith("http") else BASE_URL + href
+
                     pid_match = re.search(r'/pd/(\d+)/', link)
-                    pid = pid_match.group(1) if pid_match else hash(title)
-                    
+                    pid = pid_match.group(1) if pid_match else str(abs(hash(title)))
+
                     products.append({
                         "id": f"bigbasket_{pid}",
                         "title": title,
                         "price": price,
                         "link": link or BASE_URL,
-                        "platform": PLATFORM,
+                        "platform": self.platform_name,
                     })
-            except Exception:
-                continue
+                except Exception:
+                    continue
 
-        await browser.close()
+            await browser.close()
 
-    return products
+        return products
