@@ -6,6 +6,12 @@ on:
     - cron: '*/5 * * * *'
   workflow_dispatch: # Allows manual trigger anytime from GitHub UI
 
+# Prevent overlapping runs: if a new run is triggered while one is in
+# progress, cancel the in-progress run and start fresh with the latest DB.
+concurrency:
+  group: stock-checker
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -16,6 +22,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          # Always fetch the latest commit so we get the most recent database.db
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -35,9 +44,18 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PROXY_SERVER: ${{ secrets.PROXY_SERVER }}
+          PROXY_USERNAME: ${{ secrets.PROXY_USERNAME }}
+          PROXY_PASSWORD: ${{ secrets.PROXY_PASSWORD }}
           PYTHONDONTWRITEBYTECODE: '1'
           PYTHONUNBUFFERED: '1'
         run: python main.py --once
+
+      - name: Pull latest DB before committing (avoid overwrite race)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main || true
 
       - name: Commit Updated Database State
         uses: stefanzweifel/git-auto-commit-action@v5

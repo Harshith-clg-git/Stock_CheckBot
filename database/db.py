@@ -5,6 +5,10 @@ from loguru import logger
 
 DEFAULT_DB = "database.db"
 
+# Minimum hours between alerts for the same product (prevents duplicate
+# notifications caused by overlapping GitHub Actions runs or flaky scrapers).
+MIN_ALERT_COOLDOWN_HOURS = 24
+
 def get_connection(db_path: str = DEFAULT_DB) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -59,16 +63,17 @@ def process_product(product: Dict, db_path: str = DEFAULT_DB) -> Tuple[bool, str
     cur  = conn.cursor()
 
     cur.execute(
-        "SELECT product_id, in_stock, price FROM products WHERE product_id = ?",
+        "SELECT product_id, in_stock, price, last_alert_at FROM products WHERE product_id = ?",
         (pid,)
     )
     row = cur.fetchone()
 
     should_alert = False
     alert_type   = ""
+    cooldown_secs = MIN_ALERT_COOLDOWN_HOURS * 3600
 
     if row is None:
-        # Brand new product in stock
+        # Brand new product in stock — only alert if outside cooldown
         should_alert = True
         alert_type   = "NEW"
         cur.execute(
@@ -80,21 +85,30 @@ def process_product(product: Dict, db_path: str = DEFAULT_DB) -> Tuple[bool, str
             (pid, title, price, platform, link, category, now, now, now)
         )
     else:
+        last_alert_at = row["last_alert_at"] or 0
+        recently_alerted = (now - last_alert_at) < cooldown_secs
+
         was_in_stock = row["in_stock"]
         if was_in_stock == 0:
             # Reappeared after being out of stock
-            should_alert = True
-            alert_type   = "RESTOCK"
+            if recently_alerted:
+                logger.debug(
+                    f"[{platform.upper()}] Skipping RESTOCK alert for '{title}' "
+                    f"(already alerted {(now - last_alert_at) / 3600:.1f}h ago, cooldown={MIN_ALERT_COOLDOWN_HOURS}h)"
+                )
+            else:
+                should_alert = True
+                alert_type   = "RESTOCK"
             cur.execute(
                 """
                 UPDATE products 
                 SET title = ?, price = ?, link = ?, category = ?, in_stock = 1, last_seen_at = ?, last_alert_at = ?
                 WHERE product_id = ?
                 """,
-                (title, price, link, category, now, now, pid)
+                (title, price, link, category, now, now if should_alert else last_alert_at, pid)
             )
         else:
-            # Still in stock, update metadata silently
+            # Still in stock — update metadata silently, never re-alert
             cur.execute(
                 """
                 UPDATE products 
