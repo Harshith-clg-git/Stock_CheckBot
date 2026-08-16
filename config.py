@@ -11,6 +11,24 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
 # ---------------------------------------------------------------------------
+# Proxy Settings (Optional - for Cloud / GitHub Actions Indian IP routing)
+# ---------------------------------------------------------------------------
+PROXY_SERVER = os.getenv("PROXY_SERVER", "").strip()  # e.g. "http://ip:port" or "socks5://ip:port"
+PROXY_USERNAME = os.getenv("PROXY_USERNAME", "").strip()
+PROXY_PASSWORD = os.getenv("PROXY_PASSWORD", "").strip()
+
+def get_playwright_proxy():
+    """Returns proxy dictionary for Playwright if PROXY_SERVER is configured."""
+    if not PROXY_SERVER:
+        return None
+    proxy_config = {"server": PROXY_SERVER}
+    if PROXY_USERNAME:
+        proxy_config["username"] = PROXY_USERNAME
+    if PROXY_PASSWORD:
+        proxy_config["password"] = PROXY_PASSWORD
+    return proxy_config
+
+# ---------------------------------------------------------------------------
 # Location Coordinates — Hyderabad (hardcoded, change here if needed)
 # ---------------------------------------------------------------------------
 BLINKIT_LAT  = 17.4297
@@ -75,10 +93,15 @@ EURO_KEYWORDS = [
     "alfa romeo"
 ]
 
+# Note: POPULAR_CASTINGS is intentionally NOT in KEYWORDS anymore.
+# Having 'hot wheels' as a catch-all keyword caused every fantasy casting
+# (Bone Shaker, Twin Mill, etc.) to match POPULAR before the real-brand
+# gate in engine.py could filter them out.
+# Tooned / pandem / lbwk series still alert because they appear on real-car
+# castings that DO pass the has_real_car_brand() check.
 POPULAR_CASTINGS = [
     "godzilla", "pandem", "lbwk", "liberty walk",
     "silhouette", "tooned", "wagon", "pickup", "drift", "widebody",
-    "hot wheels", "hotwheels"
 ]
 
 KEYWORDS = {
@@ -88,7 +111,6 @@ KEYWORDS = {
     "EXOTIC":        EXOTIC_KEYWORDS,
     "MUSCLE":        MUSCLE_KEYWORDS,
     "EURO":          EURO_KEYWORDS,
-    "POPULAR":       POPULAR_CASTINGS,
 }
 
 # Items matching these keywords will be flagged as HIGH PRIORITY

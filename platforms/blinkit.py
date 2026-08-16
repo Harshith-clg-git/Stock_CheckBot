@@ -5,7 +5,7 @@ from typing import List, Dict
 from loguru import logger
 from playwright.async_api import async_playwright
 from config import BLINKIT_LAT, BLINKIT_LON
-from platforms.base import BaseScraper
+from platforms.base import BaseScraper, COMMON_USER_AGENT, COMMON_VIEWPORT, COMMON_BROWSER_ARGS, STEALTH_JS
 
 class BlinkitScraper(BaseScraper):
     def __init__(self):
@@ -24,19 +24,33 @@ class BlinkitScraper(BaseScraper):
         products = []
         api_responses = []
         session_file = "sessions/blinkit.json"
+        proxy_config = self.get_proxy_config()
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            launch_args = {
+                "headless": True,
+                "args": COMMON_BROWSER_ARGS,
+            }
+            if proxy_config:
+                launch_args["proxy"] = proxy_config
+
+            browser = await p.chromium.launch(**launch_args)
             
             context_args = {
-                "viewport": {"width": 1280, "height": 800},
-                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                "viewport": COMMON_VIEWPORT,
+                "user_agent": COMMON_USER_AGENT,
+                "geolocation": {"latitude": BLINKIT_LAT, "longitude": BLINKIT_LON},
+                "permissions": ["geolocation"]
             }
+            if proxy_config:
+                context_args["proxy"] = proxy_config
+
             if os.path.exists(session_file):
                 context_args["storage_state"] = session_file
 
             context = await browser.new_context(**context_args)
             page = await context.new_page()
+            await page.add_init_script(STEALTH_JS)
 
             async def handle_response(response):
                 if "v1/layout/search" in response.url or "search" in response.url:
@@ -126,3 +140,4 @@ class BlinkitScraper(BaseScraper):
             })
 
         return products
+

@@ -26,10 +26,18 @@ Powered by **GitHub Actions** (serverless 5-minute cron schedule) and **Telegram
 Push this repository to GitHub, then go to:
 **Settings** $\rightarrow$ **Secrets and variables** $\rightarrow$ **Actions** $\rightarrow$ **New repository secret**:
 
-| Secret Name | Value |
-| :--- | :--- |
-| `TELEGRAM_BOT_TOKEN` | Your Telegram Bot Token from `@BotFather` |
-| `TELEGRAM_CHAT_ID` | Your Telegram Chat ID from `@userinfobot` |
+| Secret Name | Required | Value |
+| :--- | :--- | :--- |
+| `TELEGRAM_BOT_TOKEN` | **Yes** | Your Telegram Bot Token from `@BotFather` |
+| `TELEGRAM_CHAT_ID` | **Yes** | Your Telegram Chat ID from `@userinfobot` |
+| `PROXY_SERVER` | *Optional (for Blinkit/Zepto/BigBasket on GitHub Actions)* | Indian Proxy URL (e.g. `http://103.x.x.x:8080` or `http://p.webshare.io:80`) |
+| `PROXY_USERNAME` | *Optional* | Proxy username if authenticated |
+| `PROXY_PASSWORD` | *Optional* | Proxy password if authenticated |
+
+> [!NOTE]
+> **Why is an Indian Proxy needed for Blinkit/Zepto/BigBasket on GitHub Actions?**
+> Quick-commerce apps in India (Blinkit, Zepto, BigBasket) geo-fence their catalog to local dark stores and block overseas/datacenter cloud IPs (like GitHub Actions' US/EU servers).
+> Adding an Indian proxy routes the scraper through India, allowing full access to Hyderabad inventory 24/7 on GitHub Actions with zero hosting costs.
 
 ---
 
