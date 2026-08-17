@@ -1,0 +1,14 @@
+services:
+  hotwheels-bot:
+    build: .
+    container_name: hotwheels_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./database.db:/app/database.db
+      - ./sessions:/app/sessions
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - SCAN_INTERVAL=300

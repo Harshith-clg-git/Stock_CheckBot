@@ -29,15 +29,20 @@ def get_playwright_proxy():
     return proxy_config
 
 # ---------------------------------------------------------------------------
-# Location Coordinates — Hyderabad (hardcoded, change here if needed)
+# Location Coordinates — Hyderabad (configurable via .env)
 # ---------------------------------------------------------------------------
-BLINKIT_LAT  = 17.4297
-BLINKIT_LON  = 78.4406
+BLINKIT_LAT  = float(os.getenv("BLINKIT_LAT", "17.4297"))
+BLINKIT_LON  = float(os.getenv("BLINKIT_LON", "78.4406"))
 
-ZEPTO_LAT    = 17.4297
-ZEPTO_LON    = 78.4406
+ZEPTO_LAT    = float(os.getenv("ZEPTO_LAT", "17.4297"))
+ZEPTO_LON    = float(os.getenv("ZEPTO_LON", "78.4406"))
 
-PINCODE = "500073"
+PINCODE      = str(os.getenv("PINCODE", "500073")).strip()
+
+# ---------------------------------------------------------------------------
+# Daemon / Scheduling Settings (Raspberry Pi 24/7 Mode)
+# ---------------------------------------------------------------------------
+SCAN_INTERVAL = int(os.getenv("SCAN_INTERVAL", "300"))  # in seconds (default 5 mins)
 
 # ---------------------------------------------------------------------------
 # Hot Wheels Keyword Priority Tiers

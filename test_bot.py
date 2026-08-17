@@ -17,7 +17,7 @@ async def test_matcher():
         ("Hot Wheels 53/25069 Chevelle Die Cat Free Wheel Toy Car- Green", "MUSCLE", False),
         ("Hot Wheels 67 Ford Mustang Shelby GT500", "MUSCLE", False),
         ("Hot Wheels BMW M3 E46 Blue", "EURO", False),
-        ("Hot Wheels Tooned Purple Passion (148/250) Die Cast Free Wheel Toy Car", "POPULAR", False),
+        ("Hot Wheels Volkswagen Golf MK7 Die Cast Free Wheel Toy Car", "EURO", False),
     ]
 
     for title, expected_cat, expected_priority in valid_cars:

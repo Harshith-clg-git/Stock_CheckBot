@@ -1,13 +1,11 @@
-name: Hot Wheels Stock Checker
+name: Hot Wheels Stock Checker (Manual / Backup)
 
 on:
-  schedule:
-    # Runs every 5 minutes
-    - cron: '*/5 * * * *'
-  workflow_dispatch: # Allows manual trigger anytime from GitHub UI
+  # Scheduled cron disabled - bot now runs 24/7 locally on Raspberry Pi 5
+  # - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger if needed as a backup
 
-# Prevent overlapping runs: if a new run is triggered while one is in
-# progress, cancel the in-progress run and start fresh with the latest DB.
+# Prevent overlapping runs
 concurrency:
   group: stock-checker
   cancel-in-progress: true

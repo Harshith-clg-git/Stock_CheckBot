@@ -1,65 +1,115 @@
 # 🚗 Hot Wheels Multi-Platform Stock Checker Bot
 
-A modern, high-performance Hot Wheels stock checker bot built for quick-commerce and toy platforms (**Blinkit**, **Zepto**, **Swiggy Instamart**, **FirstCry**, **BigBasket**).
+A high-performance Hot Wheels stock checker bot built for quick-commerce and retail platforms (**Blinkit**, **Zepto**, **FirstCry**, **BigBasket**).
 
-Powered by **GitHub Actions** (serverless 5-minute cron schedule) and **Telegram Bot API** (100% free instant push alerts with direct "🛒 Buy Now" links).
+Optimized for **24/7 local execution on Raspberry Pi 5** using native network routing, continuous daemon scheduling, and instant **Telegram Bot API** alerts.
 
 ---
 
 ## 🌟 Key Features
 
-- ⚡ **Zero-Cost 24/7 Execution**: Runs on **GitHub Actions** every 5 minutes without sleeping servers or hosting fees.
-- 📱 **Instant Telegram Push Alerts**: Direct markdown alert cards with title, price, platform badge, priority tag, and buy link.
+- 🍓 **Native 24/7 Raspberry Pi 5 Execution**: Runs locally without timeouts, serverless limits, or cloud IP geo-blocks.
+- 📍 **No Proxies Required**: Direct Indian ISP connection allows seamless dark-store inventory access for quick commerce.
+- 📱 **Instant Telegram Push Alerts**: Rich markdown cards with product title, price, platform badge, priority tags, and direct buy links.
 - 🏎️ **Smart Category Engine**: Prioritizes **Super Treasure Hunts (STH)**, **Treasure Hunts (TH)**, **JDM** (Skyline GT-R, Supra, Civic, RX-7), **Exotics** (Porsche, Lambo, Ferrari), and **Premium** (Boulevard, Car Culture).
-- 🔄 **Deduplication & Restock DB**: Stores stock state in SQLite (`database.db`) so you only get alerts for **new items** or **restocked items**.
+- 🔄 **Local SQLite Persistence**: Tracks stock status in `database.db` so you only get alerts for **brand new drops** or **restocked items**.
+- ⚙️ **Auto-Restart & Resilience**: Pre-configured `systemd` service and `docker-compose` ensure 100% uptime through power cycles and network drops.
 
 ---
 
-## 🚀 Quick Setup Guide
+## 🚀 Raspberry Pi 5 Quick Start (Recommended)
 
-### Step 1: Create your Free Telegram Bot (30 Seconds)
-1. Open Telegram and search for `@BotFather`.
-2. Send `/newbot`, name your bot (e.g. `MyHotWheelsBot`), and save the **Bot Token** (`7123456789:AAFxxx...`).
-3. Search for `@userinfobot` or `@raw_data_bot` to get your **Chat ID** (`123456789`).
+### Option A: 1-Command Automated Setup (Systemd Service)
 
-### Step 2: Configure GitHub Repository Secrets
-Push this repository to GitHub, then go to:
-**Settings** $\rightarrow$ **Secrets and variables** $\rightarrow$ **Actions** $\rightarrow$ **New repository secret**:
+1. **Clone the repository on your Raspberry Pi:**
+   ```bash
+   git clone <your-repo-url> Hotwheels_bot
+   cd Hotwheels_bot
+   ```
 
-| Secret Name | Required | Value |
+2. **Run the setup script:**
+   ```bash
+   chmod +x setup_pi.sh
+   ./setup_pi.sh
+   ```
+   This will:
+   - Install Python, pip, and system libraries
+   - Create a virtual environment and install all dependencies
+   - Install Playwright Chromium & Firefox binaries
+   - Register and configure the `hotwheels.service` background service
+
+3. **Configure your `.env`:**
+   Ensure your `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and coordinates in `.env` are filled.
+
+4. **Start the Bot 24/7:**
+   ```bash
+   sudo systemctl enable --now hotwheels.service
+   ```
+
+5. **Monitor Live Logs:**
+   ```bash
+   sudo journalctl -u hotwheels.service -f
+   ```
+
+---
+
+### Option B: Docker Compose Setup
+
+If you prefer running via Docker on your Pi:
+
+```bash
+docker compose up -d --build
+```
+
+View live container logs:
+```bash
+docker compose logs -f
+```
+
+---
+
+## 🛠️ Configuration & Sessions
+
+### Environment Variables (`.env`)
+
+| Variable | Description | Default |
 | :--- | :--- | :--- |
-| `TELEGRAM_BOT_TOKEN` | **Yes** | Your Telegram Bot Token from `@BotFather` |
-| `TELEGRAM_CHAT_ID` | **Yes** | Your Telegram Chat ID from `@userinfobot` |
-| `PROXY_SERVER` | *Optional (for Blinkit/Zepto/BigBasket on GitHub Actions)* | Indian Proxy URL (e.g. `http://103.x.x.x:8080` or `http://p.webshare.io:80`) |
-| `PROXY_USERNAME` | *Optional* | Proxy username if authenticated |
-| `PROXY_PASSWORD` | *Optional* | Proxy password if authenticated |
+| `TELEGRAM_BOT_TOKEN` | Telegram Bot Token from `@BotFather` | *(Required)* |
+| `TELEGRAM_CHAT_ID` | Telegram Chat ID from `@userinfobot` | *(Required)* |
+| `SCAN_INTERVAL` | Seconds between scan cycles in daemon mode | `300` (5 mins) |
+| `PINCODE` | Target delivery pincode | `500073` |
+| `BLINKIT_LAT` / `BLINKIT_LON` | Dark store GPS coordinates | Hyderabad |
+| `ZEPTO_LAT` / `ZEPTO_LON` | Dark store GPS coordinates | Hyderabad |
 
-> [!NOTE]
-> **Why is an Indian Proxy needed for Blinkit/Zepto/BigBasket on GitHub Actions?**
-> Quick-commerce apps in India (Blinkit, Zepto, BigBasket) geo-fence their catalog to local dark stores and block overseas/datacenter cloud IPs (like GitHub Actions' US/EU servers).
-> Adding an Indian proxy routes the scraper through India, allowing full access to Hyderabad inventory 24/7 on GitHub Actions with zero hosting costs.
+### Session Setup (Pincode & Dark Store Lock)
+
+To calibrate your exact local store sessions:
+```bash
+source venv/bin/activate
+python setup_session.py
+```
+Select the platform, set your delivery location in the opened browser window, and press `ENTER` in the terminal to save the session state.
 
 ---
 
-## 💻 Local Testing & Manual Run
+## 💻 Manual Commands
 
-### Install Dependencies
-```bash
-pip install -r requirements.txt
-playwright install chromium
-```
+- **Run single test scan:**
+  ```bash
+  source venv/bin/activate
+  python main.py --once
+  ```
 
-### Run Dry-Run Tests
-```bash
-python test_bot.py
-```
+- **Run matcher unit tests:**
+  ```bash
+  source venv/bin/activate
+  python test_bot.py
+  ```
 
-### Run Single Scan (Same mode as GitHub Actions)
-```bash
-python main.py --once
-```
+- **Manage Background Service:**
+  ```bash
+  sudo systemctl restart hotwheels.service   # Restart bot
+  sudo systemctl stop hotwheels.service      # Stop bot
+  sudo systemctl status hotwheels.service    # Check status
+  ```
 
-### Run Continuous Daemon Mode (Local / VPS)
-```bash
-python main.py --interval 300
-```

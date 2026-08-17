@@ -1,8 +1,10 @@
 import argparse
 import asyncio
+import signal
 import sys
 from loguru import logger
 
+from config import SCAN_INTERVAL
 from database.db import init_db, process_product, mark_missing_products_oos
 from matcher.engine import match_category
 from notifier.telegram_bot import send_telegram_alert
@@ -12,7 +14,7 @@ from platforms.zepto import ZeptoScraper
 from platforms.firstcry import FirstCryScraper
 from platforms.bigbasket import BigBasketScraper
 
-# Reconfigure stdout to UTF-8 for Windows compatibility
+# Reconfigure stdout to UTF-8 for cross-platform compatibility
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -88,17 +90,17 @@ async def run_scan_cycle():
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Hot Wheels Stock Checker Bot")
+    parser = argparse.ArgumentParser(description="Hot Wheels Stock Checker Bot (Raspberry Pi 24/7)")
     parser.add_argument(
         "--once",
         action="store_true",
-        help="Run a single scan cycle and exit (recommended for GitHub Actions)."
+        help="Run a single scan cycle and exit."
     )
     parser.add_argument(
         "--interval",
         type=int,
-        default=300,
-        help="Scan interval in seconds for continuous daemon mode (default: 300s)."
+        default=SCAN_INTERVAL,
+        help=f"Scan interval in seconds for continuous daemon mode (default: {SCAN_INTERVAL}s)."
     )
     args = parser.parse_args()
 
@@ -108,12 +110,25 @@ async def main():
         logger.info("Running in Single-Scan Mode (--once)")
         await run_scan_cycle()
     else:
-        logger.info(f"Running in Continuous Daemon Mode (Interval: {args.interval}s)")
-        while True:
-            await run_scan_cycle()
-            logger.info(f"Sleeping for {args.interval}s until next scan cycle...")
-            await asyncio.sleep(args.interval)
+        logger.info(f"🚀 Running in Continuous 24/7 Daemon Mode (Interval: {args.interval}s)")
+        logger.info(f"📡 Monitored Platforms: {', '.join([s.platform_name.capitalize() for s in SCRAPERS])}")
+        
+        try:
+            while True:
+                try:
+                    await run_scan_cycle()
+                except Exception as e:
+                    logger.error(f"Unexpected error during scan cycle: {e}")
+
+                logger.info(f"Sleeping for {args.interval}s until next scan cycle...")
+                await asyncio.sleep(args.interval)
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            logger.warning("Bot received stop signal. Shutting down gracefully...")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user.")
+
